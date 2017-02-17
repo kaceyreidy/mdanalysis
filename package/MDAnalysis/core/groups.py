@@ -151,15 +151,21 @@ def make_classes():
 
     # The 'GBase' middle man is needed so that a single topologyattr
     #  patching applies automatically to all groups.
-    GBase = bases[GroupBase] = _TopologyAttrContainer._subclass()
+    GBase = bases[GroupBase] = _TopologyAttrContainer._subclass(singular=False)
+    GBase._SETATTR_WHITELIST = {  # list of Group attributes we can set
+        'positions', 'velocities', 'forces',
+        'atoms', 'segments', 'residues',
+    }
     for cls in groups:
-        bases[cls] = GBase._subclass()
-
-    # In the current Group-centered topology scheme no attributes apply only
-    #  to ComponentBase, so no need to have a 'CB' middle man.
-    #CBase = _TopologyAttrContainer(singular=True)
+        bases[cls] = GBase._subclass(singular=False)
+    # CBase for patching all components
+    CBase = bases[ComponentBase] = _TopologyAttrContainer._subclass(singular=True)
+    CBase._SETATTR_WHITELIST = {
+        'position', 'velocity', 'force',
+        'atoms', 'segments', 'residues',
+    }
     for cls in components:
-        bases[cls] = _TopologyAttrContainer._subclass(singular=True)
+        bases[cls] = CBase._subclass(singular=True)
 
     # Initializes the class cache.
     for cls in groups + components:
@@ -185,7 +191,7 @@ class _TopologyAttrContainer(object):
     _singular = False
 
     @classmethod
-    def _subclass(cls, singular=None):
+    def _subclass(cls, singular):
         """Factory method returning :class:`_TopologyAttrContainer` subclasses.
 
         Parameters
@@ -199,10 +205,7 @@ class _TopologyAttrContainer(object):
         type
             A subclass of :class:`_TopologyAttrContainer`, with the same name.
         """
-        if singular is not None:
-            return type(cls.__name__, (cls,), {'_singular': bool(singular)})
-        else:
-            return type(cls.__name__, (cls,), {})
+        return type(cls.__name__, (cls,), {'_singular': bool(singular)})
 
     @classmethod
     def _mix(cls, other):
@@ -253,6 +256,12 @@ class _TopologyAttrContainer(object):
         else:
             setattr(cls, attr.attrname,
                     property(getter, setter, None, attr.groupdoc))
+
+    @classmethod
+    def _whitelist(cls, attr):
+        """Allow an attribute to be set in Groups"""
+        cls._SETATTR_WHITELIST.add(attr.attrname)
+        cls._SETATTR_WHITELIST.add(attr.singular)
 
 
 class _MutableBase(object):
@@ -423,8 +432,25 @@ class GroupBase(_MutableBase):
         self._u = u
         self._cache = dict()
 
+    def __setattr__(self, attr, value):
+        # `ag.this = 42` calls setattr(ag, 'this', 42)
+        # we scan 'this' to see if it is either 'private'
+        # or a known attribute (WHITELIST)
+        if (not attr.startswith('_') and
+            # Don't change this to isinstance,
+            # it is literally meant, if this class is the same
+            # Subclasses are free to setattr as they wish
+            type(self) in (self.universe._classes[AtomGroup],
+                           self.universe._classes[ResidueGroup],
+                           self.universe._classes[SegmentGroup])
+            and not attr in self._SETATTR_WHITELIST):
+            raise AttributeError("Cannot set arbitrary attributes to a Group")
+        # if it is, we allow the setattr to proceed by deferring to the super
+        # behaviour (ie do it)
+        super(GroupBase, self).__setattr__(attr, value)
+
     def __len__(self):
-        return len(self._ix)
+        return len(self.ix)
 
     def __getitem__(self, item):
         # supports
@@ -2379,6 +2405,17 @@ class ComponentBase(_MutableBase):
         # index of component
         self._ix = ix
         self._u = u
+
+    def __setattr__(self, attr, value):
+        # see GroupBase.__setattr__ for comments
+        if (not attr.startswith('_') and
+            type(self) in (self.universe._classes[Atom],
+                           self.universe._classes[Residue],
+                           self.universe._classes[Segment]) and
+            not attr in self._SETATTR_WHITELIST):
+            raise AttributeError(
+                "Cannot set arbitrary attributes to a Component")
+        super(ComponentBase, self).__setattr__(attr, value)
 
     def __lt__(self, other):
         if self.level != other.level:

@@ -925,3 +925,41 @@ class TestAtomGroup(object):
     def test_PDB_atom_repr():
         u = make_Universe(extras=('altLocs', 'names', 'types', 'resnames', 'resids', 'segids'))
         assert_equal("<Atom 1: AAA of type TypeA of resname RsA, resid 1 and segid SegA and altLoc A>", u.atoms[0].__repr__())
+
+class TestAttributeSetting(object):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @staticmethod
+    def _check_setattr_fails(thing):
+        assert_raises(AttributeError, setattr, thing, 'this', 'that')
+
+    def test_setting_fail(self):
+        u = make_Universe()
+
+        ag, rg, sg = u.atoms[:10], u.residues[:5], u.segments[:3]
+        a, r, s = u.atoms[10], u.residues[6], u.segments[3]
+
+        for thing in [ag, rg, sg, a, r, s]:
+            yield self._check_setattr_fails, thing
+
+    def test_making_subclass_works(self):
+        class AwesomeGroup(groups.AtomGroup):
+            # I want to create a subclass of AtomGroup
+            # that has a new attribute, should be possible..
+            def __init__(self, ix, u, thing):
+                super(AwesomeGroup, self).__init__(ix, u)
+                self.thing = thing
+
+            def thing_thingy(self):
+                # this is my cool new method which uses my new attribute
+                return self.thing * 2
+
+        u = make_Universe()
+
+        ag = AwesomeGroup([4, 6, 8], u, 'wow')
+
+        assert_(ag.thing_thingy() == 'wowwow')

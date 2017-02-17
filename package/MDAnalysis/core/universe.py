@@ -90,12 +90,14 @@ import sys
 from .. import _ANCHOR_UNIVERSES
 from ..exceptions import NoDataError
 from ..lib import util
+from ..lib.util import cached
 from ..lib.log import ProgressMeter, _set_verbose
 from ..lib.util import cached, NamedStream, isstream
 from . import groups
 from ._get_readers import get_reader_for, get_parser_for
 from .groups import (GroupBase, Atom, Residue, Segment,
                      AtomGroup, ResidueGroup, SegmentGroup)
+from ._get_readers import get_reader_for, get_parser_for
 from .topology import Topology
 from .topologyattrs import AtomAttr, ResidueAttr, SegmentAttr
 
@@ -668,6 +670,8 @@ class Universe(object):
                                  m=len(attr)))
 
         self._class_bases[GroupBase]._add_prop(attr)
+        self._class_bases[GroupBase]._whitelist(attr)
+        self._class_bases[ComponentBase]._whitelist(attr)
 
         for cls in attr.target_classes:
             try:

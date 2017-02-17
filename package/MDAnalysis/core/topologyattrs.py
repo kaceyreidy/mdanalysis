@@ -268,13 +268,13 @@ class Atomindices(TopologyAttr):
         raise AttributeError("Atom indices are fixed; they cannot be reset")
 
     def get_atoms(self, ag):
-        return ag._ix
+        return ag.ix
 
     def get_residues(self, rg):
-        return list(self.top.tt.residues2atoms_2d(rg._ix))
+        return list(self.top.tt.residues2atoms_2d(rg.ix))
 
     def get_segments(self, sg):
-        return list(self.top.tt.segments2atoms_2d(sg._ix))
+        return list(self.top.tt.segments2atoms_2d(sg.ix))
 
 
 class Resindices(TopologyAttr):
@@ -297,16 +297,16 @@ class Resindices(TopologyAttr):
         self._guessed = False
 
     def get_atoms(self, ag):
-        return self.top.tt.atoms2residues(ag._ix)
+        return self.top.tt.atoms2residues(ag.ix)
 
     def get_residues(self, rg):
-        return rg._ix
+        return rg.ix
 
     def set_residues(self, rg, values):
         raise AttributeError("Residue indices are fixed; they cannot be reset")
 
     def get_segments(self, sg):
-        return list(self.top.tt.segments2residues_2d(sg._ix))
+        return list(self.top.tt.segments2residues_2d(sg.ix))
 
 
 class Segindices(TopologyAttr):
@@ -330,13 +330,13 @@ class Segindices(TopologyAttr):
         self._guessed = False
 
     def get_atoms(self, ag):
-        return self.top.tt.atoms2segments(ag._ix)
+        return self.top.tt.atoms2segments(ag.ix)
 
     def get_residues(self, rg):
-        return self.top.tt.residues2segments(rg._ix)
+        return self.top.tt.residues2segments(rg.ix)
 
     def get_segments(self, sg):
-        return sg._ix
+        return sg.ix
 
     def set_segments(self, sg, values):
         raise AttributeError("Segment indices are fixed; they cannot be reset")
@@ -353,11 +353,11 @@ class AtomAttr(TopologyAttr):
     target_classes = [Atom]
 
     def get_atoms(self, ag):
-        return self.values[ag._ix]
+        return self.values[ag.ix]
 
     @_check_length
     def set_atoms(self, ag, values):
-        self.values[ag._ix] = values
+        self.values[ag.ix] = values
 
     def get_residues(self, rg):
         """By default, the values for each atom present in the set of residues
@@ -365,7 +365,7 @@ class AtomAttr(TopologyAttr):
         attributes.
 
         """
-        aixs = self.top.tt.residues2atoms_2d(rg._ix)
+        aixs = self.top.tt.residues2atoms_2d(rg.ix)
         return [self.values[aix] for aix in aixs]
 
     def set_residues(self, rg, values):
@@ -377,7 +377,7 @@ class AtomAttr(TopologyAttr):
         attributes.
 
         """
-        aixs = self.top.tt.segments2atoms_2d(sg._ix)
+        aixs = self.top.tt.segments2atoms_2d(sg.ix)
         return [self.values[aix] for aix in aixs]
 
     def set_segments(self, sg, values):
@@ -606,9 +606,9 @@ class Masses(AtomAttr):
         self._guessed = guessed
 
     def get_residues(self, rg):
-        resatoms = self.top.tt.residues2atoms_2d(rg._ix)
+        resatoms = self.top.tt.residues2atoms_2d(rg.ix)
 
-        if isinstance(rg._ix, numbers.Integral):
+        if isinstance(rg.ix, numbers.Integral):
             # for a single residue
             masses = self.values[resatoms].sum()
         else:
@@ -620,9 +620,9 @@ class Masses(AtomAttr):
         return masses
 
     def get_segments(self, sg):
-        segatoms = self.top.tt.segments2atoms_2d(sg._ix)
+        segatoms = self.top.tt.segments2atoms_2d(sg.ix)
 
-        if isinstance(sg._ix, numbers.Integral):
+        if isinstance(sg.ix, numbers.Integral):
             # for a single segment
             masses = self.values[segatoms].sum()
         else:
@@ -932,9 +932,9 @@ class Charges(AtomAttr):
     transplants = defaultdict(list)
 
     def get_residues(self, rg):
-        resatoms = self.top.tt.residues2atoms_2d(rg._ix)
+        resatoms = self.top.tt.residues2atoms_2d(rg.ix)
 
-        if isinstance(rg._ix, numbers.Integral):
+        if isinstance(rg.ix, numbers.Integral):
             charges = self.values[resatoms].sum()
         else:
             charges = np.empty(len(rg))
@@ -944,9 +944,9 @@ class Charges(AtomAttr):
         return charges
 
     def get_segments(self, sg):
-        segatoms = self.top.tt.segments2atoms_2d(sg._ix)
+        segatoms = self.top.tt.segments2atoms_2d(sg.ix)
 
-        if isinstance(sg._ix, numbers.Integral):
+        if isinstance(sg.ix, numbers.Integral):
             # for a single segment
             charges = self.values[segatoms].sum()
         else:
@@ -1005,18 +1005,18 @@ class ResidueAttr(TopologyAttr):
     per_object = 'residue'
 
     def get_atoms(self, ag):
-        rix = self.top.tt.atoms2residues(ag._ix)
+        rix = self.top.tt.atoms2residues(ag.ix)
         return self.values[rix]
 
     def set_atoms(self, ag, values):
         raise _wronglevel_error(self, ag)
 
     def get_residues(self, rg):
-        return self.values[rg._ix]
+        return self.values[rg.ix]
 
     @_check_length
     def set_residues(self, rg, values):
-        self.values[rg._ix] = values
+        self.values[rg.ix] = values
 
     def get_segments(self, sg):
         """By default, the values for each residue present in the set of
@@ -1024,7 +1024,7 @@ class ResidueAttr(TopologyAttr):
         in child attributes.
 
         """
-        rixs = self.top.tt.segments2residues_2d(sg._ix)
+        rixs = self.top.tt.segments2residues_2d(sg.ix)
         return [self.values[rix] for rix in rixs]
 
     def set_segments(self, sg, values):
@@ -1206,25 +1206,25 @@ class SegmentAttr(TopologyAttr):
     per_object = 'segment'
 
     def get_atoms(self, ag):
-        six = self.top.tt.atoms2segments(ag._ix)
+        six = self.top.tt.atoms2segments(ag.ix)
         return self.values[six]
 
     def set_atoms(self, ag, values):
         raise _wronglevel_error(self, ag)
 
     def get_residues(self, rg):
-        six = self.top.tt.residues2segments(rg._ix)
+        six = self.top.tt.residues2segments(rg.ix)
         return self.values[six]
 
     def set_residues(self, rg, values):
         raise _wronglevel_error(self, rg)
 
     def get_segments(self, sg):
-        return self.values[sg._ix]
+        return self.values[sg.ix]
 
     @_check_length
     def set_segments(self, sg, values):
-        self.values[sg._ix] = values
+        self.values[sg.ix] = values
 
 
 # TODO: update docs to property doc
@@ -1320,10 +1320,10 @@ class _Connection(AtomAttr):
     def get_atoms(self, ag):
         try:
             unique_bonds = set(itertools.chain(
-                *[self._bondDict[a] for a in ag._ix]))
+                *[self._bondDict[a] for a in ag.ix]))
         except TypeError:
             # maybe we got passed an Atom
-            unique_bonds = self._bondDict[ag._ix]
+            unique_bonds = self._bondDict[ag.ix]
         bond_idx, types, guessed, order = np.hsplit(
             np.array(sorted(unique_bonds)), 4)
         bond_idx = np.array(bond_idx.ravel().tolist(), dtype=np.int32)
