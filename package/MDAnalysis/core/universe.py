@@ -95,7 +95,8 @@ from ..lib.log import ProgressMeter, _set_verbose
 from ..lib.util import cached, NamedStream, isstream
 from . import groups
 from ._get_readers import get_reader_for, get_parser_for
-from .groups import (GroupBase, Atom, Residue, Segment,
+from .groups import (ComponentBase, GroupBase,
+                     Atom, Residue, Segment,
                      AtomGroup, ResidueGroup, SegmentGroup)
 from ._get_readers import get_reader_for, get_parser_for
 from .topology import Topology
