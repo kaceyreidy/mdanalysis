@@ -438,42 +438,42 @@ class TestDCDWriteHeaderCharmm36(TestDCDWriteHeader):
         self.dcdfile = DCD_TRICLINIC
 
 
-# class TestDCDReadFrameTestNAMD(TestDCDReadFrame):
-#     # repeat frame reading tests for NAMD format DCD
+class TestDCDReadFrameTestNAMD(TestDCDReadFrame):
+    # repeat frame reading tests for NAMD format DCD
 
-#     def setUp(self):
-#         self.dcdfile = DCD_NAMD_TRICLINIC
-#         self.natoms = 5545
-#         self.traj_length = 1
-#         self.new_frame = 0
-#         self.context_frame = 0
-#         self.num_iters = 0
-#         self.selected_legacy_frames = [0]
-#         self.legacy_data = legacy_DCD_NAMD_coords
-#         self.expected_remarks = 'Created by DCD pluginREMARKS Created 06 July, 2014 at 17:29Y5~CORD,'
-#         # expected unit cell based on previous DCD framework read in:
-#         self.expected_unit_cell = np.array([ 38.42659378,  38.39310074, 44.75979996,
-#                                              90.        ,  90.        , 60.02891541],
-#                                              dtype=np.float32)
+    def setUp(self):
+        self.dcdfile = DCD_NAMD_TRICLINIC
+        self.natoms = 5545
+        self.traj_length = 1
+        self.new_frame = 0
+        self.context_frame = 0
+        self.num_iters = 0
+        self.selected_legacy_frames = [0]
+        self.legacy_data = legacy_DCD_NAMD_coords
+        self.expected_remarks = 'Created by DCD pluginREMARKS Created 06 July, 2014 at 17:29Y5~CORD,'
+        # expect raw unit cell unprocessed
+        self.expected_unit_cell = np.array([ 38.42659378,  0.499563, 38.393102,
+                                             0.        ,  0.        , 44.7598],
+                                             dtype=np.float32)
 
 
-# class TestDCDReadFrameTestCharmm36(TestDCDReadFrame):
-#     # repeat frame reading tests for Charmm36 format DCD
+class TestDCDReadFrameTestCharmm36(TestDCDReadFrame):
+    # repeat frame reading tests for Charmm36 format DCD
 
-#     def setUp(self):
-#         self.dcdfile = DCD_TRICLINIC
-#         self.natoms = 375
-#         self.traj_length = 10
-#         self.new_frame = 2
-#         self.context_frame = 5
-#         self.num_iters = 7
-#         self.selected_legacy_frames = [1, 4]
-#         self.legacy_data = legacy_DCD_c36_coords
-#         self.expected_remarks = '* CHARMM TRICLINIC BOX TESTING                                                  * (OLIVER BECKSTEIN 2014)                                                       * BASED ON NPTDYN.INP : SCOTT FELLER, NIH, 7/15/95                              * TEST EXTENDED SYSTEM CONSTANT PRESSURE AND TEMPERATURE                        * DYNAMICS WITH WATER BOX.                                                      *  DATE:     7/ 7/14     13:59:46      CREATED BY USER: oliver                  '
-#         # expected unit cell based on previous DCD framework read in:
-#         self.expected_unit_cell = np.array([ 35.44603729,  35.06156158,  34.15850067,
-#                                              91.32801819,  61.73519516, 44.4070282],
-#                                              dtype=np.float32)
+    def setUp(self):
+        self.dcdfile = DCD_TRICLINIC
+        self.natoms = 375
+        self.traj_length = 10
+        self.new_frame = 2
+        self.context_frame = 5
+        self.num_iters = 7
+        self.selected_legacy_frames = [1, 4]
+        self.legacy_data = legacy_DCD_c36_coords
+        self.expected_remarks = '* CHARMM TRICLINIC BOX TESTING                                                  * (OLIVER BECKSTEIN 2014)                                                       * BASED ON NPTDYN.INP : SCOTT FELLER, NIH, 7/15/95                              * TEST EXTENDED SYSTEM CONSTANT PRESSURE AND TEMPERATURE                        * DYNAMICS WITH WATER BOX.                                                      *  DATE:     7/ 7/14     13:59:46      CREATED BY USER: oliver                  '
+        # expect raw unit cell unprocessed
+        self.expected_unit_cell = np.array([ 30.841836,  14.578635,  31.780088,
+                                             9.626323,  -2.60815, 32.67009],
+                                             dtype=np.float32)
 
 
 class TestDCDWriteRandom(object):
