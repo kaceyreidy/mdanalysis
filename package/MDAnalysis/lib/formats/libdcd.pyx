@@ -249,18 +249,6 @@ cdef class DCDFile:
 
         return py_remarks
 
-    @property
-    def header(self):
-        return {'n_atoms': self.n_atoms,
-                'nsets': self.nsets,
-                'istart': self.istart,
-                'nsavc': self.nsacv,
-                'delta': self.delta,
-                'nfixed': self.nfixed,
-                'reverse_endian': self.reverse_endian,
-                'charmm': self.charmm,
-                'remarks': self.remarks}
-
     def _estimate_n_frames(self):
         extrablocksize = 48 + 8 if self.charmm & DCD_HAS_EXTRA_BLOCK else 0
         self._firstframesize = (self.n_atoms + 2) * self.n_dims * sizeof(float) + extrablocksize
@@ -315,7 +303,16 @@ cdef class DCDFile:
             raise IOError("DCD seek failed with system errno={}".format(ok))
         self.current_frame = frame
 
-    def _write_header(self, remarks, int n_atoms, int starting_step, 
+    @property
+    def header(self):
+        return {'n_atoms': self.n_atoms,
+                'istart': self.istart,
+                'nsavc': self.nsacv,
+                'delta': self.delta,
+                'charmm': self.charmm,
+                'remarks': self.remarks}
+
+    def write_header(self, remarks, int n_atoms, int starting_step,
                       int ts_between_saves, double time_step,
                       int charmm):
 
@@ -386,7 +383,7 @@ cdef class DCDFile:
         cdef float alpha, beta, gamma, a, b, c;
 
         if self.current_frame == 0:
-            self._write_header(remarks=remarks, n_atoms=xyz.shape[0], starting_step=step,
+            self.write_header(remarks=remarks, n_atoms=xyz.shape[0], starting_step=step,
                                ts_between_saves=ts_between_saves,
                                time_step=time_step,
                                charmm=charmm)
