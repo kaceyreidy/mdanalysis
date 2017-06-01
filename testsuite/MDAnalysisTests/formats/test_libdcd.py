@@ -41,7 +41,7 @@ class TestDCDReadFrame():
     def test_header_remarks(self):
         # confirm correct header remarks section reading
         with DCDFile(self.dcdfile) as f:
-            assert_equal(len(f.remarks), len(self.expected_remarks))
+            assert_equal(len(f.header['remarks']), len(self.expected_remarks))
 
     def test_read_coords(self):
         # confirm shape of coordinate data against result from previous
@@ -120,7 +120,7 @@ class TestDCDReadFrame():
 
     def test_n_atoms(self):
         with DCDFile(self.dcdfile) as dcd:
-            assert_equal(dcd.n_atoms, self.natoms)
+            assert_equal(dcd.header['n_atoms'], self.natoms)
 
     @raises(IOError)
     @run_in_tempdir()
@@ -215,11 +215,11 @@ class TestDCDWrite():
     def _write_files(self, testfile, remarks_setting):
 
         with DCDFile(self.readfile) as f_in, DCDFile(testfile, 'w') as f_out:
+            header = f_in.header
             if remarks_setting == 'input':
-                remarks = f_in.remarks
+                remarks = header['remarks']
             else: # accept the random remarks strings from hypothesis
                 remarks = remarks_setting
-            header = f_in.header
             header['remarks'] = remarks
             f_out.write_header(**header)
             for frame in f_in:
@@ -284,7 +284,7 @@ class TestDCDWrite():
         # ensure that the REMARKS field *can be* preserved exactly
         # in the written DCD file
         with DCDFile(self.testfile) as f:
-            assert_equal(f.remarks, self.expected_remarks)
+            assert_equal(f.header['remarks'], self.expected_remarks)
 
     # @given(st.text()) # handle the full unicode range of strings
     # def test_written_remarks_property(self, remarks_str):
@@ -300,19 +300,19 @@ class TestDCDWrite():
         # ensure that nsavc, the timesteps between frames written
         # to file, is preserved in the written DCD file
         with DCDFile(self.readfile) as dcd_r, DCDFile(self.testfile) as dcd:
-            assert_equal(dcd.nsavc, dcd_r.nsavc)
+            assert_equal(dcd.header['nsavc'], dcd_r.header['nsavc'])
 
     def test_written_istart(self):
         # ensure that istart, the starting timestep, is preserved
         # in the written DCD file
         with DCDFile(self.readfile) as dcd_r, DCDFile(self.testfile) as dcd:
-            assert_equal(dcd.istart, dcd_r.istart)
+            assert_equal(dcd.header['istart'], dcd_r.header['istart'])
 
     def test_written_delta(self):
         # ensure that delta, the trajectory timestep, is preserved in
         # the written DCD file
         with DCDFile(self.readfile) as dcd_r, DCDFile(self.testfile) as dcd:
-            assert_equal(dcd.delta, dcd_r.delta)
+            assert_equal(dcd.header['delta'], dcd_r.header['delta'])
 
     def test_coord_match(self):
         # ensure that all coordinates match in each frame for the

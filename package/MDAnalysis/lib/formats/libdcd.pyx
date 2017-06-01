@@ -17,16 +17,14 @@
 from os import path
 import numpy as np
 from collections import namedtuple
-from MDAnalysis.lib.mdamath import triclinic_box
 import six
 import string
 import sys
 
 cimport numpy as np
-
-
 from libc.stdio cimport SEEK_SET, SEEK_CUR, SEEK_END
-from libc.math cimport M_PI_2, asin
+from libc.stdint cimport uintptr_t
+from libc.stdlib cimport free
 
 _whence_vals = {"FIO_SEEK_SET": SEEK_SET,
                 "FIO_SEEK_CUR": SEEK_CUR,
@@ -45,9 +43,6 @@ ctypedef np.float32_t FLOAT_T
 ctypedef np.float64_t DOUBLE_T
 FLOAT = np.float32
 DOUBLE = np.float64
-
-from libc.stdint cimport uintptr_t
-from libc.stdlib cimport free
 
 cdef enum:
     FIO_READ = 0x01
@@ -104,11 +99,11 @@ cdef class DCDFile:
     cdef fio_fd fp
     cdef readonly fname
     cdef int is_open
-    cdef readonly int n_atoms
+    cdef int n_atoms
     cdef int nsets
-    cdef readonly int istart
-    cdef readonly int nsavc
-    cdef readonly double delta
+    cdef int istart
+    cdef int nsavc
+    cdef double delta
     cdef readonly int nfixed
     cdef int *freeind
     cdef float *fixedcoords
@@ -119,7 +114,7 @@ cdef class DCDFile:
     cdef readonly int n_frames
     cdef bint b_read_header
     cdef int current_frame
-    cdef readonly remarks
+    cdef remarks
     cdef int reached_eof
     cdef readonly int _firstframesize
     cdef readonly int _framesize
