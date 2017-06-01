@@ -307,7 +307,7 @@ cdef class DCDFile:
     def header(self):
         return {'n_atoms': self.n_atoms,
                 'istart': self.istart,
-                'nsavc': self.nsacv,
+                'nsavc': self.nsavc,
                 'delta': self.delta,
                 'charmm': self.charmm,
                 'remarks': self.remarks}

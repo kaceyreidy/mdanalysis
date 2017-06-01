@@ -2,7 +2,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 from nose.tools import raises
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_almost_equal
 from numpy.testing import assert_allclose
 
 from MDAnalysis.lib.formats.libdcd import DCDFile
@@ -162,27 +162,32 @@ class TestDCDWriteHeader():
         # test that _write_header() can produce a very crude
         # header for a new / empty file
         with DCDFile(self.testfile, 'w') as dcd:
-            dcd._write_header(remarks='Crazy!', n_atoms=22,
-                              starting_step=12, ts_between_saves=10,
-                              time_step=0.02,
-                              charmm=1)
+            dcd.write_header(remarks='Crazy!', n_atoms=22,
+                             starting_step=12, ts_between_saves=10,
+                             time_step=0.02,
+                             charmm=1)
 
         # we're not actually asserting anything, yet
         # run with: nosetests test_libdcd.py --nocapture
         # to see printed output from nose
         with DCDFile(self.testfile) as dcd:
-            assert_equal(dcd.remarks, 'Crazy!')
-            assert_equal(dcd.n_atoms, 22)
+            header = dcd.header
+            assert_equal(header['remarks'], 'Crazy!')
+            assert_equal(header['n_atoms'], 22)
+            assert_equal(header['istart'], 12)
+            assert_equal(header['charmm'], 5)
+            assert_equal(header['nsavc'], 10)
+            assert_almost_equal(header['delta'], .02)
 
     @raises(IOError)
     def test_write_header_only(self):
         # test that _write_header() can produce a very crude
         # header for a new / empty file
         with DCDFile(self.testfile, 'w') as dcd:
-            dcd._write_header(remarks='Crazy!', n_atoms=22,
-                              starting_step=12, ts_between_saves=10,
-                              time_step=0.02,
-                              charmm=1)
+            dcd.write_header(remarks='Crazy!', n_atoms=22,
+                             starting_step=12, ts_between_saves=10,
+                             time_step=0.02,
+                             charmm=1)
 
         # we're not actually asserting anything, yet
         # run with: nosetests test_libdcd.py --nocapture
@@ -195,10 +200,10 @@ class TestDCDWriteHeader():
         # an exception should be raised on any attempt to use
         # _write_header with a DCDFile object in 'r' mode
         with DCDFile(self.dcdfile) as dcd:
-            dcd._write_header(remarks='Crazy!', n_atoms=22,
-                              starting_step=12, ts_between_saves=10,
-                              time_step=0.02,
-                              charmm=1)
+            dcd.write_header(remarks='Crazy!', n_atoms=22,
+                             starting_step=12, ts_between_saves=10,
+                             time_step=0.02,
+                             charmm=1)
 
 
 
