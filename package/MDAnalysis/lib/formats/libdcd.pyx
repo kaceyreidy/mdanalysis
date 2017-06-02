@@ -428,6 +428,7 @@ cdef class DCDFile:
         self.current_frame += 1
         return DCDFrame(xyz, unitcell)
 
+
     def readframes(self, start=None, stop=None, step=None, order='fac', indices=None):
         cdef int i, cstart, cstop, cstep, n, counter
         self.seek(0)
@@ -444,53 +445,79 @@ cdef class DCDFile:
             natoms = len(indices)
 
         shape = []
+        cdef int hash_order = -1
         if order == 'fac':
             shape = (n, natoms, self.ndims)
+            hash_order = 1
         elif order == 'fca':
             shape = (n, self.ndims, natoms)
+            hash_order = 2
         elif order == 'afc':
             shape = (natoms, n, self.ndims)
+            hash_order = 3
         elif order == 'acf':
             shape = (natoms, self.ndims, n)
+            hash_order = 4
         elif order == 'caf':
             shape = (self.ndims, natoms, n)
+            hash_order = 5
         elif order == 'cfa':
+            hash_order = 6
             shape = (self.ndims, n, natoms)
         else:
             raise ValueError("unkown order '{}'".format(order))
 
-        xyz = np.empty(shape)
+        xyz = np.empty(shape, dtype=FLOAT)
         box = np.empty((n, 6))
+
+
+        cdef np.ndarray xyz_tmp = np.empty((self.natoms, self.ndims), dtype=FLOAT, order='F')
+        cdef FLOAT_T[::1] x = xyz_tmp[:, 0]
+        cdef FLOAT_T[::1] y = xyz_tmp[:, 1]
+        cdef FLOAT_T[::1] z = xyz_tmp[:, 2]
+        cdef int ok
 
         if cstart == 0 and cstep == 1 and cstop == self.n_frames:
             for i in range(n):
-                f = self.read()
-                x = f.x[indices]
-                copy_in_order(x, xyz, order, i)
-                box[i] = f.unitcell
+                ok = self.c_readframes_helper(x, y, z, box[i], i==0)
+                if ok != 0 and ok != -4:
+                    raise IOError("Reading DCD header failed: {}".format(DCD_ERRORS[ok]))
+                copy_in_order(xyz_tmp[indices], xyz, hash_order, i)
         else:
             counter = 0
             for i in range(cstart, cstop, cstep):
                 self.seek(i)
-                f = self.read()
-                x = f.x[indices]
-                copy_in_order(x, xyz, order, counter)
-                box[counter] = f.unitcell
+                ok = self.c_readframes_helper(x, y, z, box[counter], i==0)
+                if ok != 0 and ok != -4:
+                    raise IOError("Reading DCD header failed: {}".format(DCD_ERRORS[ok]))
+                copy_in_order(xyz_tmp[indices], xyz, hash_order, counter)
                 counter += 1
 
         return DCDFrame(xyz, box)
 
+    cdef int c_readframes_helper(self, FLOAT_T[::1] x,
+                                 FLOAT_T[::1] y,FLOAT_T[::1] z,
+                                 DOUBLE_T[::1] unitcell, int first_frame):
+        cdef int ok
+        ok = read_dcdstep(self.fp, self.natoms,
+                          <FLOAT_T*> &x[0],
+                          <FLOAT_T*> &y[0], <FLOAT_T*> &z[0],
+                          <DOUBLE_T*> &unitcell[0], self.nfixed, first_frame,
+                          self.freeind, self.fixedcoords,
+                          self.reverse_endian, self.charmm)
+        return ok
 
-def copy_in_order(source, target, order, index):
-    if order == 'fac':
+
+cdef void copy_in_order(FLOAT_T[:, :] source, FLOAT_T[:, :, :] target, int order, int index):
+    if order == 1:  #  'fac':
         target[index] = source
-    elif order == 'fca':
+    elif order == 2:  #  'fca':
         target[index] = source.T
-    elif order == 'afc':
+    elif order == 3:  # 'afc':
         target[:, index] = source
-    elif order == 'acf':
+    elif order == 4:  # 'acf':
         target[:, :, index] = source
-    elif order == 'caf':
+    elif order == 5:  # 'caf':
         target[:, :, index] = source.T
-    elif order == 'cfa':
+    elif order == 6:  # 'cfa':
         target[:, index] = source.T
