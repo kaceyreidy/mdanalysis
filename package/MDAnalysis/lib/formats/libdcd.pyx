@@ -430,21 +430,31 @@ cdef class DCDFile:
 
 
     def readframes(self, start=None, stop=None, step=None, order='fac', indices=None):
-        cdef int i, cstart, cstop, cstep, n, counter
-        self.seek(0)
-        cstop = stop if not stop is None else self.n_frames
-        cstart = start if not start is None else 0
-        cstep = step if not step is None else 1
-        #n = (cstop - cstart) / cstep
-        n = len(range(cstart, cstop, cstep))
+        if self.reached_eof:
+            raise IOError('Reached last frame in DCD, seek to 0')
+        if not self.is_open:
+            raise IOError("No file open")
+        if self.mode != 'r':
+            raise IOError('File opened in mode: {}. Reading only allow '
+                               'in mode "r"'.format('self.mode'))
+        if self.n_frames == 0:
+            raise IOError("opened empty file. No frames are saved")
 
+        self.seek(0)
+        stop = stop if not stop is None else self.n_frames
+        start = start if not start is None else 0
+        step = step if not step is None else 1
+        cdef int n
+        n = len(range(start, stop, step))
+
+        cdef np.ndarray[np.int64_t, ndim=1] c_indices
         if indices == 'None':
-            indices = np.arange(self.natoms)
+            c_indices = np.arange(self.natoms)
             natoms = self.natoms
         else:
             natoms = len(indices)
+            c_indices = np.asarray(indices, dtype=np.int64)
 
-        shape = []
         cdef int hash_order = -1
         if order == 'fac':
             shape = (n, natoms, self.ndims)
@@ -467,36 +477,33 @@ cdef class DCDFile:
         else:
             raise ValueError("unkown order '{}'".format(order))
 
-        xyz = np.empty(shape, dtype=FLOAT)
-        box = np.empty((n, 6))
+        cdef np.ndarray[FLOAT_T, ndim=3] xyz = np.empty(shape, dtype=FLOAT)
+        cdef np.ndarray[DOUBLE_T, ndim=2] box = np.empty((n, 6))
 
 
         cdef np.ndarray xyz_tmp = np.empty((self.natoms, self.ndims), dtype=FLOAT, order='F')
-        cdef FLOAT_T[::1] x = xyz_tmp[:, 0]
-        cdef FLOAT_T[::1] y = xyz_tmp[:, 1]
-        cdef FLOAT_T[::1] z = xyz_tmp[:, 2]
-        cdef int ok
+        cdef int ok, i
 
-        if cstart == 0 and cstep == 1 and cstop == self.n_frames:
+        if start == 0 and step == 1 and stop == self.n_frames:
             for i in range(n):
-                ok = self.c_readframes_helper(x, y, z, box[i], i==0)
+                ok = self.c_readframes_helper(xyz_tmp[:, 0], xyz_tmp[:, 1], xyz_tmp[:, 2], box[i], i==0)
                 if ok != 0 and ok != -4:
                     raise IOError("Reading DCD header failed: {}".format(DCD_ERRORS[ok]))
-                copy_in_order(xyz_tmp[indices], xyz, hash_order, i)
+                copy_in_order(xyz_tmp[c_indices], xyz, hash_order, i)
         else:
             counter = 0
-            for i in range(cstart, cstop, cstep):
+            for i in range(start, stop, step):
                 self.seek(i)
-                ok = self.c_readframes_helper(x, y, z, box[counter], i==0)
+                ok = self.c_readframes_helper(xyz_tmp[:, 0], xyz_tmp[:, 1], xyz_tmp[:, 2], box[counter], i==0)
                 if ok != 0 and ok != -4:
                     raise IOError("Reading DCD header failed: {}".format(DCD_ERRORS[ok]))
-                copy_in_order(xyz_tmp[indices], xyz, hash_order, counter)
+                copy_in_order(xyz_tmp[c_indices], xyz, hash_order, counter)
                 counter += 1
 
         return DCDFrame(xyz, box)
 
     cdef int c_readframes_helper(self, FLOAT_T[::1] x,
-                                 FLOAT_T[::1] y,FLOAT_T[::1] z,
+                                 FLOAT_T[::1] y, FLOAT_T[::1] z,
                                  DOUBLE_T[::1] unitcell, int first_frame):
         cdef int ok
         ok = read_dcdstep(self.fp, self.natoms,
