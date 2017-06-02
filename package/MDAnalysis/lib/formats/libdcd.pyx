@@ -256,7 +256,7 @@ cdef class DCDFile:
         self.wrote_header = False
         # Has to come last since it checks the reached_eof flag
         if self.mode == 'r':
-            self.remarks = self._read_header()
+            self._read_header()
 
     def close(self):
         """Close the open DCD file
@@ -278,7 +278,8 @@ cdef class DCDFile:
                               "ErrorCode: {}".format(self.fname, ok))
 
 
-    def _read_header(self):
+    cdef void _read_header(self):
+        """read header and populate internal fields"""
         if not self.is_open:
             raise IOError("No file open")
 
@@ -321,9 +322,9 @@ cdef class DCDFile:
 
         py_remarks = "".join(s for s in py_remarks if s in string.printable)
 
-        return py_remarks
+        self.remarks = py_remarks
 
-    def _estimate_n_frames(self):
+    cdef int _estimate_n_frames(self):
         extrablocksize = 48 + 8 if self.charmm & DCD_HAS_EXTRA_BLOCK else 0
         self._firstframesize = (self.natoms + 2) * self.ndims * sizeof(float) + extrablocksize
         self._framesize = ((self.natoms - self.nfixed + 2) * self.ndims * sizeof(float) +
@@ -337,8 +338,13 @@ cdef class DCDFile:
 
     @property
     def is_periodic(self):
-          return bool((self.charmm & DCD_IS_CHARMM) and
-                      (self.charmm & DCD_HAS_EXTRA_BLOCK))
+        """
+        Returns
+        -------
+        bool if periodic unitcell is available
+        """
+        return bool((self.charmm & DCD_IS_CHARMM) and
+                    (self.charmm & DCD_HAS_EXTRA_BLOCK))
 
     def seek(self, frame):
         """Seek to Frame.
@@ -375,6 +381,11 @@ cdef class DCDFile:
 
     @property
     def header(self):
+        """
+        Returns
+        -------
+        dict of header values needed to write new dcd
+        """
         return {'natoms': self.natoms,
                 'istart': self.istart,
                 'nsavc': self.nsavc,
@@ -382,10 +393,9 @@ cdef class DCDFile:
                 'charmm': self.charmm,
                 'remarks': self.remarks}
 
-    def write_header(self, remarks, natoms, istart,
-                     nsavc, delta,
-                     charmm):
-        """write DCD header
+    def write_header(self, remarks, natoms, istart, nsavc, delta, charmm):
+        """write DCD header. This function needs to be called before a frame can be
+        written.
 
         Parameters
         ----------
@@ -394,9 +404,14 @@ cdef class DCDFile:
         natoms : int
             number of atoms to write
         istart : int
+            starting frame
         nsavc : int
+            number of frames between saves
         delta : float
+            timepstep
         charmm : int
+            is charmm dcd
+
         """
         if not self.is_open:
             raise IOError("No file open")
@@ -433,12 +448,6 @@ cdef class DCDFile:
             cartesion coordinates
         box : array_like, shape=(6)
             Box vectors for this frame
-        step : int
-            current step number, 1 indexed
-        time : float
-            current time
-        natoms : int
-            number of atoms in frame
 
         Raises
         ------
@@ -467,10 +476,26 @@ cdef class DCDFile:
                            self.natoms, <FLOAT_T*> &x[0],
                            <FLOAT_T*> &y[0], <FLOAT_T*> &z[0],
                            <DOUBLE_T*> &c_box[0], self.charmm)
+        if ok != 0:
+            raise IOError("Couldn't write DCD frame")
 
         self.current_frame += 1
 
     def read(self):
+        """
+        Read next dcd frame
+
+        Returns
+        -------
+        DCDFrame : namedtuple
+            positions are in ``x`` and unitcell in ``unitcell`` attribute of DCDFrame
+
+        Notes
+        -----
+        unitcell is read as it from DCD. Post processing depending the program this
+        DCD file was written with is necessary. Have a look at the MDAnalysis DCD reader
+        for possible post processing into a common unitcell data structure.
+        """
         if self.reached_eof:
             raise IOError('Reached last frame in DCD, seek to 0')
         if not self.is_open:
@@ -501,6 +526,30 @@ cdef class DCDFile:
 
 
     def readframes(self, start=None, stop=None, step=None, order='fac', indices=None):
+        """
+        read multiple frames at once
+
+        Parameters
+        ----------
+        start, stop, step : int
+            range of frames
+        order : str (optional)
+            give order of returned array with `f`:frames, `a`:atoms, `c`:coordinates
+        indices : array_like (optional)
+            only read selected atoms. In ``None`` read all.
+
+        Returns
+        -------
+        DCDFrame : namedtuple
+            positions are in ``x`` and unitcell in ``unitcell`` attribute of DCDFrame.
+            Here the attributes contain the positions for all frames in the given order
+
+        Notes
+        -----
+        unitcell is read as it from DCD. Post processing depending the program this
+        DCD file was written with is necessary. Have a look at the MDAnalysis DCD reader
+        for possible post processing into a common unitcell data structure.
+        """
         if self.reached_eof:
             raise IOError('Reached last frame in DCD, seek to 0')
         if not self.is_open:
