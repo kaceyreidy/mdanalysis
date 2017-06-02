@@ -89,7 +89,7 @@ from __future__ import absolute_import
 
 import six
 
-__all__ = ['AtomGroup', 'Selection', 'Timeseries']
+__all__ = ['AtomGroup', 'Selection']
 
 
 # set up flags for core routines (more convoluted than strictly necessary but should
@@ -429,5 +429,4 @@ class flagsDocs(object):
 
 from . import groups
 from . import selection
-from . import Timeseries
 from . import AtomGroup
